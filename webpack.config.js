@@ -1,10 +1,8 @@
-const path = require('path')
-const webpack = require('webpack')
-const { merge } = require('webpack-merge')
-const VueLoaderPlugin = require('vue-loader/lib/plugin')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+var path = require('path')
+var webpack = require('webpack')
+var HtmlWebpackPlugin = require('html-webpack-plugin')
 
-const common = {
+module.exports = {
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, './dist'),
@@ -16,13 +14,17 @@ const common = {
     rules: [
       {
         test: /\.css$/,
-        use: ['vue-style-loader', 'css-loader']
+        use: [
+          'vue-style-loader',
+          'css-loader'
+        ]
       },
       {
         test: /\.vue$/,
         loader: 'vue-loader',
         options: {
-          loaders: {}
+          loaders: {
+          }
           // other vue-loader options go here
         }
       },
@@ -42,52 +44,56 @@ const common = {
   },
   resolve: {
     alias: {
-      vue$: 'vue/dist/vue.esm.js'
+      'vue$': 'vue/dist/vue.esm.js'
     },
     extensions: ['*', '.js', '.vue', '.json', '.jsx']
+  },
+  devServer: {
+    host: '0.0.0.0',
+    disableHostCheck: true,
+    historyApiFallback: true,
+    noInfo: true,
+    overlay: true,
+    clientLogLevel: 'none'
   },
   performance: {
     hints: false
   },
-  plugins: [new VueLoaderPlugin()],
-  devtool: 'source-map'
+  devtool: '#eval-source-map'
 }
 
 if (process.env.NODE_ENV === 'development') {
-  module.exports = merge(common, {
-    mode: 'development',
+  Object.assign(module.exports, {
     entry: './demo/main.js',
     output: {
       path: path.resolve(__dirname, './docs'),
       publicPath: '/vue-split-layout/',
       filename: 'index.js'
-    },
-    plugins: [
-      new HtmlWebpackPlugin({
-        filename: 'index.html',
-        template: 'demo/index.html'
-      })
-    ],
-    devServer: {
-      historyApiFallback: true,
-      static: path.join(__dirname, './demo/dist')
     }
   })
+  module.exports.plugins = (module.exports.plugins || []).concat([
+    new HtmlWebpackPlugin({ filename: 'index.html', template: 'demo/index.html' })
+  ])
 }
 
 if (process.env.NODE_ENV === 'production') {
-  module.exports = merge(common, {
-    mode: 'production',
-    plugins: [
-      new webpack.DefinePlugin({
-        'process.env': {
-          NODE_ENV: '"production"'
-        }
-      }),
-      new webpack.LoaderOptionsPlugin({
-        minimize: true
-      })
-    ],
-    externals: { vue: 'vue' }
-  })
+  module.exports.devtool = '#source-map'
+  // http://vue-loader.vuejs.org/en/workflow/production.html
+  module.exports.plugins = (module.exports.plugins || []).concat([
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: '"production"'
+      }
+    }),
+    new webpack.optimize.UglifyJsPlugin({
+      sourceMap: true,
+      compress: {
+        warnings: false
+      }
+    }),
+    new webpack.LoaderOptionsPlugin({
+      minimize: true
+    })
+  ])
+  module.exports.externals = { 'vue': 'vue' }
 }
